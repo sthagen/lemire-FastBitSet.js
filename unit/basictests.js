@@ -180,4 +180,20 @@ describe("BitSet", function () {
     arr = mb2.change(mb1).array();
     if (!arraysEquals(arr, ch)) throw "bad change";
   });
+
+  it("Testing cumulative union", function () {
+    const k = 256;
+    const arr = [];
+    for (let i = 0; i < k; i++) {
+      const bs = new FastBitSet();
+      bs.add(i * 64);
+      arr.push(bs);
+    }
+    for (let i = 0; i < k - 1; i++) {
+      arr[i + 1].union(arr[i]);
+    }
+    // The last bitmap should have bits set at 0, 64, 128, ..., 16320
+    // Highest index 16320, so words.length should be ceil((16320+1)/32) = 511
+    if (arr[k - 1].words.length !== 511) throw "bad words length: " + arr[k - 1].words.length;
+  });
 });
