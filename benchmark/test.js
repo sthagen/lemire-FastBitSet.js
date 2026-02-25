@@ -12,6 +12,49 @@ const fBitSet = require("fast-bitset");
 const roaring = require("roaring");
 const os = require("os");
 
+function getPackageVersion(packageName) {
+  try {
+    return require(packageName + "/package.json").version;
+  } catch (e) {
+    return "(version unknown)";
+  }
+}
+
+// Parse command line arguments
+const args = process.argv.slice(2);
+let selectedBenchmark = null;
+let listBenchmarks = false;
+
+for (let i = 0; i < args.length; i++) {
+  if (args[i] === '--list') {
+    listBenchmarks = true;
+  } else if (args[i] === '--select' && i + 1 < args.length) {
+    selectedBenchmark = args[i + 1];
+    i++; // skip the next argument
+  }
+}
+
+// Available benchmarks
+const benchmarks = {
+  'create': CreateBench,
+  'array': ArrayBench,
+  'foreach': ForEachBench,
+  'cardinality': CardBench,
+  'query': QueryBench,
+  'clone': CloneBench,
+  'intersection': AndBench,
+  'intersection-card': AndCardBench,
+  'union-card': OrCardBench,
+  'difference-card': DifferenceCardBench,
+  'union-inplace': OrInplaceBench,
+  'intersection-inplace': AndInplaceBench,
+  'difference-inplace': AndNotInplaceBench,
+  'union': OrBench,
+  'difference': DifferenceBench,
+  'xor-inplace': XORInplaceBench,
+  'xor': XORBench
+};
+
 const smallgap = 3;
 const largegap = 210;
 
@@ -158,6 +201,7 @@ function CreateBench() {
   const ms = suite
     .add("FastBitSet", function () {
       const b = new FastBitSet();
+      b.resize(smallgap * N + 5);
       for (let i = 0; i < N; i++) {
         b.add(smallgap * i + 5);
       }
@@ -284,7 +328,7 @@ function ForEachBench() {
       return card;
     })
     .add("FastBitSet (via array)", function () {
-      const card = 0;
+      let card = 0;
       for (const i in b.array()) {
         card++;
       }
@@ -938,9 +982,6 @@ function AndNotInplaceBench() {
     .add("TypedFastBitSet (inplace)", function () {
       return tb1.difference(tb2);
     })
-    .add("TypedFastBitSet (inplace2)", function () {
-      return tbb1.difference2(tbb2);
-    })
     .add("infusion.BitSet.js (inplace)", function () {
       return bs1.andNot(bs2);
     })
@@ -1135,7 +1176,10 @@ function XORInplaceBench() {
       return b1.change(b2);
     })
     .add("TypedFastBitSet (inplace)", function () {
-      return tb1.change(tb2);
+      // TypedFastBitSet doesn't have change (XOR), so implement as (A ∪ B) - (A ∩ B)
+      const union = tb1.new_union(tb2);
+      const intersection = tb1.new_intersection(tb2);
+      return union.difference(intersection);
     })
     .add("infusion.BitSet.js (inplace)", function () {
       return bs1.xor(bs2);
@@ -1206,7 +1250,10 @@ function XORBench() {
       return b1.new_change(b2);
     })
     .add("TypedFastBitSet (creates new bitset)", function () {
-      return tb1.new_change(tb2);
+      // TypedFastBitSet doesn't have new_change, so implement XOR as (A ∪ B) - (A ∩ B)
+      const union = tb1.new_union(tb2);
+      const intersection = tb1.new_intersection(tb2);
+      return union.difference(intersection);
     })
     .add("mattkrick.fast-bitset (creates new bitset)", function () {
       return fb1.xor(fb2);
@@ -1223,6 +1270,29 @@ function XORBench() {
 }
 
 const main = function () {
+  // Handle list option
+  if (listBenchmarks) {
+    console.log("Available benchmarks:");
+    Object.keys(benchmarks).forEach(name => {
+      console.log(`  ${name}`);
+    });
+    return;
+  }
+
+  // Handle select option
+  if (selectedBenchmark) {
+    if (!benchmarks[selectedBenchmark]) {
+      console.error(`Unknown benchmark: ${selectedBenchmark}`);
+      console.log("Use --list to see available benchmarks");
+      return;
+    }
+    console.log(`Running benchmark: ${selectedBenchmark}`);
+    console.log("");
+    benchmarks[selectedBenchmark]();
+    return;
+  }
+
+  // Run all benchmarks (original behavior)
   console.log("Benchmarking against:");
   console.log(
     "TypedFastBitSet.js: https://github.com/lemire/TypedFastBitSet.js"
@@ -1230,15 +1300,15 @@ const main = function () {
   console.log("roaring: https://www.npmjs.com/package/roaring");
   console.log(
     "infusion.BitSet.js from https://github.com/infusion/BitSet.js",
-    require("bitset.js/package.json").version
+    getPackageVersion("bitset.js")
   );
   console.log(
     "tdegrunt.BitSet from https://github.com/tdegrunt/bitset",
-    require("bitset/package.json").version
+    getPackageVersion("bitset")
   );
   console.log(
     "mattkrick.fast-bitset from https://github.com/mattkrick/fast-bitset",
-    require("fast-bitset/package.json").version
+    getPackageVersion("fast-bitset")
   );
   console.log("standard Set object from JavaScript");
   console.log("");

@@ -51,6 +51,12 @@ function FastBitSet(iterable) {
         current = iterator.next();
       }
     } else {
+      // find max value to know how much memory we need
+      let max = 0;
+      for (let i = 0; i < iterable.length; i++) {
+        if (iterable[i] > max) max = iterable[i];
+      }
+      this.resize(max);
       for (let i = 0; i < iterable.length; i++) {
         this.add(iterable[i]);
       }
@@ -66,12 +72,20 @@ FastBitSet.fromWords = function (words) {
 };
 
 // Add the value (Set the bit at index to true)
+// If you repeatedly add values, you may want to call
+// resize(maxvalue) first to allocate the memory in one go, 
+// otherwise the bitset will resize itself as needed, but this may 
+// be slower (possibly quadratic) if you add many values.
 FastBitSet.prototype.add = function (index) {
   this.resize(index);
   this.words[index >>> 5] |= 1 << index;
 };
 
 // If the value was not in the set, add it, otherwise remove it (flip bit at index)
+// If you repeatedly flip values, you may want to call
+// resize(maxvalue) first to allocate the memory in one go, 
+// otherwise the bitset will resize itself as needed, but this may 
+// be slower (possibly quadratic) if you flip many values.
 FastBitSet.prototype.flip = function (index) {
   this.resize(index);
   this.words[index >>> 5] ^= 1 << index;
@@ -82,7 +96,8 @@ FastBitSet.prototype.clear = function () {
   this.words.length = 0;
 };
 
-// Set the bit at index to false
+// Remove the bit at index (set it to false)
+// This may extend the bitset (include memory usage).
 FastBitSet.prototype.remove = function (index) {
   this.resize(index);
   this.words[index >>> 5] &= ~(1 << index);
@@ -104,6 +119,10 @@ FastBitSet.prototype.has = function (index) {
 
 // Tries to add the value (Set the bit at index to true), return 1 if the
 // value was added, return 0 if the value was already present
+// If you repeatedly checkedAdd values, you may want to call
+// resize(maxvalue) first to allocate the memory in one go, 
+// otherwise the bitset will resize itself as needed, but this may 
+// be slower (possibly quadratic) if you checkedAdd many values.
 FastBitSet.prototype.checkedAdd = function (index) {
   this.resize(index);
   const word = this.words[index >>> 5];

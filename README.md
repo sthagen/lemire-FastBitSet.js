@@ -64,7 +64,73 @@ and new_difference) because they avoid creating a new object, a potentially
 expensive process in JavaScript. For faster code, use as few FastBitSet objects as
 you can.
 
+API
+===
 
+## Constructor
+
+- `new FastBitSet([iterable])` - Creates a new FastBitSet. If an iterable is provided, initializes the set with its values.
+
+## Static Methods
+
+- `FastBitSet.fromWords(words)` - Creates a FastBitSet from an array of 32-bit words.
+
+## Instance Methods
+
+### Size and Memory
+
+- `size()` - Returns the number of values stored in the set.
+- `trim()` - Reduces memory usage to a minimum.
+- `resize(index)` - Ensures the bitset can store values up to the given index.
+
+### Basic Operations
+
+- `add(index)` - Adds the value (sets the bit at index to true).
+- `remove(index)` - Removes the value (sets the bit at index to false).
+- `has(index)` - Returns true if the value is in the set.
+- `flip(index)` - Flips the bit at index (adds if not present, removes if present).
+- `checkedAdd(index)` - Tries to add the value, returns 1 if added, 0 if already present.
+- `clear()` - Removes all values and resets memory usage.
+- `isEmpty()` - Returns true if no bits are set.
+
+If you call `add`, `checkedAdd`, `flip` repeatedly, in a way that extends the
+bitset, you may want to call `resize(maxvalue)`
+
+
+### Iteration and Conversion
+
+- `array()` - Returns an array with all set bit locations.
+- `forEach(fnc)` - Executes a function on each value stored in the set.
+- `toString()` - Returns a string representation of the set.
+- `[Symbol.iterator]()` - Returns an iterator over the set values.
+
+### Set Operations (In-place)
+
+- `intersection(otherbitmap)` - Modifies this set to contain only elements present in both sets.
+- `union(otherbitmap)` - Modifies this set to contain all elements from both sets.
+- `difference(otherbitmap)` - Modifies this set to remove elements present in the other set (A = A - B).
+- `difference2(otherbitmap)` - Modifies the other set to contain the difference (B = A - B).
+- `change(otherbitmap)` - Modifies this set to contain elements that are in one set but not both (XOR).
+
+### Set Operations (New Set)
+
+- `new_intersection(otherbitmap)` - Returns a new set containing the intersection.
+- `new_union(otherbitmap)` - Returns a new set containing the union.
+- `new_difference(otherbitmap)` - Returns a new set containing the difference.
+- `new_change(otherbitmap)` - Returns a new set containing the symmetric difference (XOR).
+
+### Size Queries
+
+- `intersection_size(otherbitmap)` - Returns the size of the intersection without modifying sets.
+- `union_size(otherbitmap)` - Returns the size of the union without modifying sets.
+- `difference_size(otherbitmap)` - Returns the size of the difference without modifying sets.
+- `change_size(otherbitmap)` - Returns the number of elements that differ between the sets.
+
+### Comparison and Utility
+
+- `intersects(otherbitmap)` - Returns true if the sets have any common elements.
+- `equals(otherbitmap)` - Checks if this set is equal to another.
+- `clone()` - Creates a deep copy of the set.
 
 npm install
 ===
@@ -79,6 +145,46 @@ Using node.js (npm), you can test the code as follows...
       $ npm install mocha
       $ npm test
 
+
+
+Benchmarking
+===
+
+The library includes comprehensive benchmarks comparing FastBitSet against other popular bit set implementations.
+
+### Running All Benchmarks
+
+To run all benchmarks:
+
+      $ npm run benchmark
+
+This will execute all available benchmark tests and display performance comparisons.
+
+### Running Specific Benchmarks
+
+You can run individual benchmarks for faster, focused testing:
+
+      $ npm run benchmark -- --list
+
+This shows all available benchmark categories:
+
+- `create` - Dynamic bitmap creation
+- `array` - Array extraction performance  
+- `foreach` - Iteration performance
+- `cardinality` - Size calculation
+- `query` - Membership testing
+- `clone` - Cloning performance
+- `intersection` - Set intersection operations
+- `union` - Set union operations
+- `difference` - Set difference operations
+- `xor` - Symmetric difference (XOR) operations
+- And their variants: `-card` (size-only), `-inplace` (modifying)
+
+To run a specific benchmark:
+
+      $ npm run benchmark -- --select create
+      $ npm run benchmark -- --select foreach
+      $ npm run benchmark -- --select xor
 
 
 Is it faster?
