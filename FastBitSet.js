@@ -191,9 +191,8 @@ FastBitSet.prototype.array = function () {
   for (let k = 0; k < c; ++k) {
     let w = this.words[k];
     while (w != 0) {
-      const t = w & -w;
-      answer[pos++] = (k << 5) + this.hammingWeight((t - 1) | 0);
-      w ^= t;
+      answer[pos++] = (k << 5) + (31 - Math.clz32(w & -w));;
+      w &= w - 1;
     }
   }
   return answer;
@@ -205,9 +204,8 @@ FastBitSet.prototype.forEach = function (fnc) {
   for (let k = 0; k < c; ++k) {
     let w = this.words[k];
     while (w != 0) {
-      const t = w & -w;
-      fnc((k << 5) + this.hammingWeight((t - 1) | 0));
-      w ^= t;
+      fnc((k << 5) + (31 - Math.clz32(w & -w)));
+      w &= w - 1;
     }
   }
 };
